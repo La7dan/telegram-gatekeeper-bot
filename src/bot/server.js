@@ -1,4 +1,3 @@
-
 import { Telegraf } from 'telegraf';
 import dotenv from 'dotenv';
 import { BOT_TOKEN } from '../utils/telegramConfig.js';
@@ -9,6 +8,7 @@ import ytdl from 'ytdl-core';
 import { fileTypeFromBuffer } from 'file-type';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import TikTokScraper from 'tiktok-scraper';
 
 // Get directory name for ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -69,6 +69,84 @@ async function downloadFile(url, platform) {
           reject(error);
         });
       });
+    } else if (platform === 'tiktok') {
+      // For TikTok URLs, we need to extract the actual video URL first
+      console.log(`Processing TikTok URL: ${url}`);
+      
+      try {
+        // Use TikTokScraper to get the video data
+        const videoMeta = await TikTokScraper.getVideoMeta(url);
+        
+        if (!videoMeta || !videoMeta.collector || videoMeta.collector.length === 0) {
+          throw new Error('Could not extract video data from TikTok URL');
+        }
+        
+        // Get the video URL from the response
+        const videoUrl = videoMeta.collector[0].videoUrl;
+        
+        if (!videoUrl) {
+          throw new Error('No video URL found in TikTok response');
+        }
+        
+        console.log(`Extracted TikTok video URL: ${videoUrl}`);
+        
+        // Download the video using axios
+        const response = await axios({
+          method: 'GET',
+          url: videoUrl,
+          responseType: 'arraybuffer'
+        });
+        
+        fileBuffer = Buffer.from(response.data, 'binary');
+        filename = `tiktok_${Date.now()}.mp4`;
+        
+        // Save file to disk
+        const filePath = path.join(downloadsDir, filename);
+        await fs.promises.writeFile(filePath, fileBuffer);
+        
+        return {
+          path: filePath,
+          filename: filename,
+          info: {
+            platform: 'tiktok',
+            author: videoMeta.collector[0].authorMeta?.name || 'Unknown',
+            description: videoMeta.collector[0].text || 'No description',
+            size: `${(fileBuffer.length / (1024 * 1024)).toFixed(2)} MB`,
+            source: url
+          }
+        };
+      } catch (error) {
+        console.error(`Error processing TikTok URL: ${error.message}`);
+        
+        // Fall back to direct download if the URL is already a direct video URL
+        if (url.endsWith('.mp4') || url.includes('tiktokcdn')) {
+          const response = await axios({
+            method: 'GET',
+            url,
+            responseType: 'arraybuffer'
+          });
+          
+          fileBuffer = Buffer.from(response.data, 'binary');
+          fileExtension = 'mp4';
+          filename = `tiktok_${Date.now()}.${fileExtension}`;
+          
+          // Save file to disk
+          const filePath = path.join(downloadsDir, filename);
+          await fs.promises.writeFile(filePath, fileBuffer);
+          
+          return {
+            path: filePath,
+            filename: filename,
+            info: {
+              platform: 'tiktok',
+              size: `${(fileBuffer.length / (1024 * 1024)).toFixed(2)} MB`,
+              source: url
+            }
+          };
+        } else {
+          throw error;
+        }
+      }
     } else {
       // For other platforms, use axios to download
       console.log(`Downloading file from URL: ${url}`);
@@ -283,13 +361,7 @@ bot.command('tiktok', async (ctx) => {
       '📥 Downloading video from TikTok. Please wait...'
     );
     
-    // For TikTok we would need a specialized scraper
-    // But for direct video URLs we can use our download function
-    if (!url.endsWith('.mp4') && !url.includes('tiktokcdn')) {
-      throw new Error('Please provide a direct TikTok video URL');
-    }
-    
-    // Download the file
+    // Download the file (now supports both direct and share URLs)
     const downloadResult = await downloadFile(url, 'tiktok');
     
     // Send the downloaded file
@@ -298,6 +370,8 @@ bot.command('tiktok', async (ctx) => {
       { source: downloadResult.path, filename: downloadResult.filename },
       {
         caption: `🎵 TikTok video:
+${downloadResult.info.author ? `👤 Author: ${downloadResult.info.author}\n` : ''}
+${downloadResult.info.description ? `📝 Description: ${downloadResult.info.description}\n` : ''}
 📦 Size: ${downloadResult.info.size}
 🔗 Source: ${url}`
       }
