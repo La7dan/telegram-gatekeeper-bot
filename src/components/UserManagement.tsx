@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -29,41 +28,10 @@ import { toast } from "sonner";
 import { UserIcon, ShieldIcon, ShieldOff } from "lucide-react";
 
 const UserManagement: React.FC = () => {
-  const { user, authorizeUser, deauthorizeUser } = useAuth();
+  const { user, users, authorizeUser, deauthorizeUser } = useAuth();
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [actionType, setActionType] = useState<'authorize' | 'deauthorize'>('authorize');
-  
-  // Mock users data
-  const mockUsers = [
-    {
-      id: "1",
-      username: "admin",
-      email: "admin@example.com",
-      role: "admin",
-      isAuthorized: true,
-      lastActive: new Date(Date.now() - 120000),
-      commandsIssued: 42
-    },
-    {
-      id: "2",
-      username: "user1",
-      email: "user1@example.com",
-      role: "user",
-      isAuthorized: true,
-      lastActive: new Date(Date.now() - 3600000),
-      commandsIssued: 17
-    },
-    {
-      id: "3",
-      username: "user2",
-      email: "user2@example.com",
-      role: "user",
-      isAuthorized: false,
-      lastActive: new Date(Date.now() - 86400000),
-      commandsIssued: 5
-    }
-  ];
   
   const handleAuthorize = (userData: any) => {
     setSelectedUser(userData);
@@ -92,7 +60,16 @@ const UserManagement: React.FC = () => {
     }
   };
   
-  // Check if current user is admin
+  const getUserWithActivity = (u: any) => {
+    const now = Date.now();
+    const randomTime = Math.floor(Math.random() * 86400000); // Random time within 24 hours
+    return {
+      ...u,
+      lastActive: new Date(now - randomTime),
+      commandsIssued: Math.floor(Math.random() * 50) // Random number of commands
+    };
+  };
+  
   const isAdmin = user && user.role === 'admin';
   
   if (!isAdmin) {
@@ -140,66 +117,69 @@ const UserManagement: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockUsers.map((mockUser) => (
-              <TableRow key={mockUser.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center space-x-2">
-                    <div className="bg-muted rounded-full p-1">
-                      <UserIcon size={16} className="text-muted-foreground" />
+            {users.map((u) => {
+              const userWithActivity = getUserWithActivity(u);
+              return (
+                <TableRow key={u.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center space-x-2">
+                      <div className="bg-muted rounded-full p-1">
+                        <UserIcon size={16} className="text-muted-foreground" />
+                      </div>
+                      <div>
+                        <div>{u.username}</div>
+                        <div className="text-xs text-muted-foreground">{u.email}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div>{mockUser.username}</div>
-                      <div className="text-xs text-muted-foreground">{mockUser.email}</div>
+                  </TableCell>
+                  <TableCell>
+                    {u.role === 'admin' ? (
+                      <Badge variant="outline" className="border-telegram-blue text-telegram-blue">
+                        Admin
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">User</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {u.isAuthorized ? (
+                      <Badge className="bg-green-500 hover:bg-green-600">Authorized</Badge>
+                    ) : (
+                      <Badge variant="secondary">Unauthorized</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {userWithActivity.lastActive.toLocaleString()}
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {mockUser.role === 'admin' ? (
-                    <Badge variant="outline" className="border-telegram-blue text-telegram-blue">
-                      Admin
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline">User</Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {mockUser.isAuthorized ? (
-                    <Badge className="bg-green-500 hover:bg-green-600">Authorized</Badge>
-                  ) : (
-                    <Badge variant="secondary">Unauthorized</Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm">
-                    {mockUser.lastActive.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {mockUser.commandsIssued} commands
-                  </div>
-                </TableCell>
-                <TableCell className="text-right space-x-1">
-                  {mockUser.isAuthorized ? (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-red-200 hover:border-red-300 hover:bg-red-50 text-red-500"
-                      onClick={() => handleDeauthorize(mockUser)}
-                    >
-                      Revoke Access
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-green-200 hover:border-green-300 hover:bg-green-50 text-green-600"
-                      onClick={() => handleAuthorize(mockUser)}
-                    >
-                      Grant Access
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+                    <div className="text-xs text-muted-foreground">
+                      {userWithActivity.commandsIssued} commands
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right space-x-1">
+                    {u.isAuthorized ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-red-200 hover:border-red-300 hover:bg-red-50 text-red-500"
+                        onClick={() => handleDeauthorize(u)}
+                      >
+                        Revoke Access
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-green-200 hover:border-green-300 hover:bg-green-50 text-green-600"
+                        onClick={() => handleAuthorize(u)}
+                      >
+                        Grant Access
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
         
