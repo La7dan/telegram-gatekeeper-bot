@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import { useAuth } from '@/context/AuthContext';
@@ -123,11 +124,14 @@ const BotManager: React.FC = () => {
   
   // Toggle bot status
   const toggleBotStatus = (id: string) => {
-    const updatedBots = bots.map(bot => 
-      bot.id === id 
-        ? { ...bot, status: bot.status === 'active' ? 'inactive' : 'active' } 
-        : bot
-    );
+    const updatedBots = bots.map(bot => {
+      if (bot.id === id) {
+        // Explicitly set the status as either 'active' or 'inactive'
+        const newStatus: 'active' | 'inactive' = bot.status === 'active' ? 'inactive' : 'active';
+        return { ...bot, status: newStatus };
+      }
+      return bot;
+    });
     saveBots(updatedBots);
     toast.success(`Bot ${updatedBots.find(b => b.id === id)?.status === 'active' ? 'activated' : 'deactivated'}`);
   };
