@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,12 +10,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Shield, Settings, Menu } from 'lucide-react';
+import { LogOut, User, Shield, Settings, Menu, Database } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const NavBar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, getDatabaseStatus } = useAuth();
   const navigate = useNavigate();
+  const [dbStatus, setDbStatus] = useState<{ connected: boolean; message: string }>({
+    connected: false,
+    message: "Checking database status..."
+  });
+  
+  useEffect(() => {
+    const checkConnection = async () => {
+      const status = await getDatabaseStatus();
+      setDbStatus(status);
+    };
+    checkConnection();
+    
+    // Check connection every 30 seconds
+    const interval = setInterval(checkConnection, 30000);
+    return () => clearInterval(interval);
+  }, [getDatabaseStatus]);
   
   return (
     <nav className="bg-telegram-blue text-white shadow">
@@ -23,6 +39,12 @@ const NavBar: React.FC = () => {
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-bold">Telegram Gatekeeper</h1>
+            
+            <div className="flex items-center gap-2 px-3 py-1 bg-telegram-dark-blue/30 rounded-full text-xs">
+              <span className={`inline-block w-2 h-2 rounded-full ${dbStatus.connected ? 'bg-green-400' : 'bg-red-400'}`}></span>
+              <Database size={12} />
+              <span>{dbStatus.connected ? 'Connected' : 'Disconnected'}</span>
+            </div>
           </div>
           
           <div className="flex items-center space-x-2">

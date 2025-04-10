@@ -1,5 +1,4 @@
-
-import React, { createContext, useState, useContext, ReactNode, useEffect } from "react";
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ADMIN_USERNAME } from "@/utils/telegramConfig";
@@ -21,6 +20,7 @@ interface AuthContextType {
   authorizeUser: (userId: string) => void;
   deauthorizeUser: (userId: string) => void;
   users: User[];
+  getDatabaseStatus: () => Promise<{ connected: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,8 +28,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Initial admin user to create if no users exist
 const INITIAL_ADMIN: User = {
   id: "1",
-  username: ADMIN_USERNAME,
-  email: "admin@example.com",
+  username: "La7dan",
+  email: "La7dan@gmail.com",
   role: "admin",
   isAuthorized: true
 };
@@ -60,7 +60,7 @@ const initializeDatabase = async (): Promise<User[]> => {
     }
   }
   
-  // If no users exist, create the initial admin
+  // If no users exist, create the initial admin with La7dan@gmail.com
   if (users.length === 0) {
     console.log("No users found, creating initial admin user:", INITIAL_ADMIN.username);
     users = [INITIAL_ADMIN];
@@ -74,6 +74,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dbConnected, setDbConnected] = useState(false);
   const navigate = useNavigate();
 
   // Initialize database connection and load users
@@ -83,6 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const loadedUsers = await initializeDatabase();
         setUsers(loadedUsers);
+        setDbConnected(true);
         
         // Check for stored session
         const storedUser = localStorage.getItem("current_user");
@@ -102,6 +104,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (error) {
         console.error("Database initialization failed:", error);
+        setDbConnected(false);
         toast.error("Failed to connect to database");
       } finally {
         setIsLoading(false);
@@ -128,7 +131,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Here we check against our stored users array
           const foundUser = users.find(u => u.email === email);
           
-          // For demo purposes, we accept "password" for all users
+          // Check for the specific admin user
+          if (email === "La7dan@gmail.com" && password === "Ala@450") {
+            const adminUser = users.find(u => u.email === "La7dan@gmail.com") || INITIAL_ADMIN;
+            setUser(adminUser);
+            localStorage.setItem("current_user", JSON.stringify(adminUser));
+            toast.success("Admin login successful!");
+            navigate("/");
+            resolve();
+            return;
+          }
+          
+          // For other users
           if (foundUser && password === "password") {
             setUser(foundUser);
             localStorage.setItem("current_user", JSON.stringify(foundUser));
@@ -146,6 +160,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }, 500);
     });
   };
+
+  // Get database connection status
+  const getDatabaseStatus = useCallback(async (): Promise<{ connected: boolean; message: string }> => {
+    return {
+      connected: dbConnected,
+      message: dbConnected 
+        ? `Connected to ${DB_CONFIG.name} as ${DB_CONFIG.user}`
+        : "Database connection failed"
+    };
+  }, [dbConnected]);
 
   const register = async (username: string, email: string, password: string): Promise<void> => {
     return new Promise((resolve, reject) => {
@@ -252,7 +276,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       logout, 
       authorizeUser, 
       deauthorizeUser,
-      users
+      users,
+      getDatabaseStatus
     }}>
       {children}
     </AuthContext.Provider>
