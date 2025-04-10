@@ -9,6 +9,9 @@
 // The bot's username that we want to restrict admin capabilities to
 export const ADMIN_USERNAME = "qatar009";
 
+// Bot token for API authentication
+export const BOT_TOKEN = "6761659234:AAElXXl10ylbn6DysH5GNrTiyZorkn8qJwY";
+
 // Instructions for running the bot
 export const SETUP_INSTRUCTIONS = {
   step1: "Create a bot through BotFather on Telegram (https://t.me/botfather)",
@@ -26,4 +29,11 @@ export const getConnectionStatus = () => {
     lastCheck: new Date(),
     message: "Bot is not yet connected to Telegram API"
   };
+};
+
+// Function to get the bot's invite link
+export const getBotInviteLink = () => {
+  // Extract the numeric ID from the token
+  const botId = BOT_TOKEN.split(':')[0];
+  return `https://t.me/bot${botId}`;
 };
