@@ -4,12 +4,13 @@ import { useAuth } from '@/context/AuthContext';
 import BotInterface from './BotInterface';
 import CommandHistory from './CommandHistory';
 import UserManagement from './UserManagement';
-import { CommandLog, initialCommandLogs } from '@/utils/botCommands';
+import { CommandLog, initialCommandLogs, supportedPlatforms } from '@/utils/botCommands';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LockIcon, MessageSquare, Activity, Users } from 'lucide-react';
+import { LockIcon, MessageSquare, Activity, Users, Download, Music } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -124,7 +125,7 @@ const Dashboard: React.FC = () => {
             <div className="lg:col-span-2">
               <BotInterface onAddLog={handleAddLog} />
             </div>
-            <div>
+            <div className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Bot Information</CardTitle>
@@ -143,7 +144,7 @@ const Dashboard: React.FC = () => {
                   
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-muted-foreground">Bot Version</h4>
-                    <p>v1.0.3</p>
+                    <p>v1.1.0</p>
                   </div>
                   
                   <div className="space-y-2">
@@ -162,6 +163,59 @@ const Dashboard: React.FC = () => {
                       <li className="text-muted-foreground"><code>/stats</code> - View stats (authorized)</li>
                       <li className="text-muted-foreground"><code>/secure</code> - Access secure data (authorized)</li>
                     </ul>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center">
+                      <Download size={18} className="mr-2" />
+                      Download Features
+                    </CardTitle>
+                    <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50 border-green-200">New</Badge>
+                  </div>
+                  <CardDescription>
+                    Download media from popular platforms
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Supported Platforms</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {supportedPlatforms.map((platform) => (
+                          <div key={platform.name} className="flex items-center px-3 py-1.5 bg-gray-100 rounded-full text-sm">
+                            <span className="mr-1">{platform.icon}</span>
+                            {platform.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Download Commands</h4>
+                      <ul className="bg-muted p-3 rounded-md text-xs space-y-1">
+                        <li><code>/download [url]</code> - Download from any platform</li>
+                        <li><code>/youtube [url]</code> - Download from YouTube</li>
+                        <li><code>/instagram [url]</code> - Download from Instagram</li>
+                        <li><code>/tiktok [url]</code> - Download from TikTok</li>
+                        <li><code>/snapchat [url]</code> - Download from Snapchat</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Audio Features</h4>
+                      <div className="flex items-center mb-2">
+                        <Music size={14} className="mr-1.5 text-blue-500" />
+                        <span className="text-sm">Audio Extraction</span>
+                      </div>
+                      <ul className="bg-muted p-3 rounded-md text-xs space-y-1">
+                        <li><code>/extract [url]</code> - Extract audio from video</li>
+                        <li><code>/convert [url] [format]</code> - Convert media format</li>
+                      </ul>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

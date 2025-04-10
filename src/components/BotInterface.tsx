@@ -3,15 +3,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { findCommand, CommandLog } from '@/utils/botCommands';
+import { findCommand, CommandLog, generateDownloadProgress } from '@/utils/botCommands';
 import { toast } from 'sonner';
-import { SendIcon } from 'lucide-react';
+import { SendIcon, Download } from 'lucide-react';
 
 interface Message {
   id: string;
   sender: 'user' | 'bot';
   text: string;
   timestamp: Date;
+  isDownloadable?: boolean;
+  downloadUrl?: string;
+  downloadName?: string;
+  isInProgress?: boolean;
+  progressValue?: number;
 }
 
 interface BotInterfaceProps {
@@ -30,6 +35,7 @@ const BotInterface: React.FC<BotInterfaceProps> = ({ onAddLog }) => {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +44,65 @@ const BotInterface: React.FC<BotInterfaceProps> = ({ onAddLog }) => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Handle download simulation
+  const handleDownload = (messageId: string, platform: string) => {
+    // Find the message
+    const messageIndex = messages.findIndex(msg => msg.id === messageId);
+    if (messageIndex === -1) return;
+
+    // Update message to show progress
+    setIsDownloading(true);
+    
+    // Update the message to show it's downloading
+    setMessages(prevMessages => {
+      const updatedMessages = [...prevMessages];
+      updatedMessages[messageIndex] = {
+        ...updatedMessages[messageIndex],
+        isInProgress: true,
+        progressValue: 0
+      };
+      return updatedMessages;
+    });
+
+    // Simulate download progress
+    let progress = 0;
+    const downloadInterval = setInterval(() => {
+      progress += Math.floor(Math.random() * 15) + 5;
+      
+      if (progress >= 100) {
+        clearInterval(downloadInterval);
+        progress = 100;
+        
+        // Complete the download
+        setTimeout(() => {
+          setMessages(prevMessages => {
+            const finalMessages = [...prevMessages];
+            finalMessages[messageIndex] = {
+              ...finalMessages[messageIndex],
+              isInProgress: false,
+              text: finalMessages[messageIndex].text.split('\n\nTo save')[0] + '\n\n✅ Download completed!'
+            };
+            return finalMessages;
+          });
+          
+          setIsDownloading(false);
+          toast.success(`Download from ${platform} completed successfully!`);
+        }, 500);
+      }
+      
+      // Update progress
+      setMessages(prevMessages => {
+        const progressMessages = [...prevMessages];
+        progressMessages[messageIndex] = {
+          ...progressMessages[messageIndex],
+          progressValue: progress,
+          text: generateDownloadProgress(platform, progress)
+        };
+        return progressMessages;
+      });
+    }, 300);
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -63,6 +128,8 @@ const BotInterface: React.FC<BotInterfaceProps> = ({ onAddLog }) => {
       
       let botResponse: string;
       let success = false;
+      let isDownloadable = false;
+      let platform = "";
       
       if (!result) {
         botResponse = "⚠️ Unknown command. Type /help to see available commands.";
@@ -77,6 +144,28 @@ const BotInterface: React.FC<BotInterfaceProps> = ({ onAddLog }) => {
           try {
             botResponse = command.handler(params);
             success = true;
+            
+            // Check if this is a download command
+            if (["/download", "/youtube", "/instagram", "/tiktok", "/snapchat", "/extract", "/convert"].includes(command.command)) {
+              isDownloadable = true;
+              
+              // Determine platform for download handling
+              if (command.command === "/youtube") platform = "YouTube";
+              else if (command.command === "/instagram") platform = "Instagram";
+              else if (command.command === "/tiktok") platform = "TikTok";
+              else if (command.command === "/snapchat") platform = "Snapchat";
+              else if (command.command === "/extract") platform = "Audio";
+              else if (command.command === "/convert") platform = "Media";
+              else if (command.command === "/download") {
+                // Try to extract platform from URL
+                const url = params?.toLowerCase() || "";
+                if (url.includes("youtube")) platform = "YouTube";
+                else if (url.includes("instagram")) platform = "Instagram";
+                else if (url.includes("tiktok")) platform = "TikTok";
+                else if (url.includes("snapchat")) platform = "Snapchat";
+                else platform = "Media";
+              }
+            }
           } catch (error) {
             botResponse = "❌ Error executing command.";
           }
@@ -84,11 +173,14 @@ const BotInterface: React.FC<BotInterfaceProps> = ({ onAddLog }) => {
       }
 
       // Add bot message
+      const botMessageId = (Date.now() + 1).toString();
       const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: botMessageId,
         sender: 'bot',
         text: botResponse,
-        timestamp: new Date()
+        timestamp: new Date(),
+        isDownloadable,
+        downloadName: isDownloadable ? `${platform.toLowerCase()}_${Date.now()}` : undefined,
       };
       
       setMessages(prevMessages => [...prevMessages, botMessage]);
@@ -125,22 +217,53 @@ const BotInterface: React.FC<BotInterfaceProps> = ({ onAddLog }) => {
         {messages.map((message) => (
           <div 
             key={message.id}
-            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
           >
             <div className={`message-bubble ${
               message.sender === 'user' ? 'message-bubble-user' : 'message-bubble-bot'
-            }`}>
-              {message.text.split('\n').map((line, i) => (
-                <React.Fragment key={i}>
-                  {line}
-                  {i < message.text.split('\n').length - 1 && <br />}
-                </React.Fragment>
-              ))}
-              <div className={`text-xs mt-1 ${
-                message.sender === 'user' ? 'text-gray-600' : 'text-white/80'
-              }`}>
-                {message.timestamp.toLocaleTimeString()}
-              </div>
+            } max-w-[80%]`}>
+              {message.isInProgress ? (
+                <div className="w-full">
+                  <div className="mb-2">{message.text}</div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                    <div 
+                      className="bg-blue-400 h-2.5 rounded-full transition-all duration-300" 
+                      style={{ width: `${message.progressValue}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-right">{message.progressValue}%</div>
+                </div>
+              ) : (
+                <>
+                  {message.text.split('\n').map((line, i) => (
+                    <React.Fragment key={i}>
+                      {line}
+                      {i < message.text.split('\n').length - 1 && <br />}
+                    </React.Fragment>
+                  ))}
+                  
+                  {message.isDownloadable && !message.isInProgress && (
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-white text-telegram-blue border-telegram-blue hover:bg-telegram-blue hover:text-white transition-colors"
+                        onClick={() => handleDownload(message.id, message.downloadName?.split('_')[0] || 'media')}
+                        disabled={isDownloading}
+                      >
+                        <Download size={14} className="mr-1" />
+                        Download
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className={`text-xs mt-1 ${
+                    message.sender === 'user' ? 'text-gray-600' : 'text-white/80'
+                  }`}>
+                    {message.timestamp.toLocaleTimeString()}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ))}
@@ -167,12 +290,12 @@ const BotInterface: React.FC<BotInterfaceProps> = ({ onAddLog }) => {
             onChange={(e) => setInput(e.target.value)}
             placeholder={user ? "Type a command..." : "Please log in to use the bot"}
             className="telegram-input flex-grow"
-            disabled={!user}
+            disabled={!user || isDownloading}
           />
           <Button 
             type="submit" 
             className="bg-telegram-blue hover:bg-telegram-dark-blue text-white rounded-full w-10 h-10 p-0"
-            disabled={!user || !input.trim()}
+            disabled={!user || !input.trim() || isDownloading}
           >
             <SendIcon size={20} />
           </Button>
