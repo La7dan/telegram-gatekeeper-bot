@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { ADMIN_USERNAME, SETUP_INSTRUCTIONS } from '@/utils/telegramConfig';
+import { ADMIN_USERNAME, SETUP_INSTRUCTIONS, BOT_TOKEN } from '@/utils/telegramConfig';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,8 @@ const BotSetup: React.FC = () => {
   const { user } = useAuth();
   const [copied, setCopied] = useState<string | null>(null);
   const isAdmin = user?.username === ADMIN_USERNAME;
+
+  console.log("BotSetup rendered with token:", BOT_TOKEN);
 
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -92,6 +93,13 @@ DOWNLOADS_FOLDER=./downloads
   return (
     <div className="container mx-auto px-4 py-6">
       <h1 className="text-3xl font-bold mb-6">Telegram Bot Setup Guide</h1>
+      
+      <Alert className="mb-4 bg-blue-50 border-blue-200">
+        <AlertTitle>Component Updated</AlertTitle>
+        <AlertDescription>
+          This component has been updated. Current bot token: {BOT_TOKEN.substring(0, 10)}...
+        </AlertDescription>
+      </Alert>
       
       {isAdmin ? (
         <Badge className="mb-4 bg-green-600 hover:bg-green-700">Administrator Access</Badge>
