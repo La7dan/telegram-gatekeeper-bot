@@ -10,7 +10,8 @@
 export const ADMIN_USERNAME = "qatar009";
 
 // Bot token for API authentication
-export const BOT_TOKEN = "6761659234:AAElXXl10ylbn6DysH5GNrTiyZorkn8qJwY";
+// IMPORTANT: You need to replace this with your actual bot token from BotFather
+export const BOT_TOKEN = "YOUR_BOT_TOKEN_HERE";
 
 // Instructions for running the bot
 export const SETUP_INSTRUCTIONS = {
@@ -33,7 +34,11 @@ export const getConnectionStatus = () => {
 
 // Function to get the bot's invite link
 export const getBotInviteLink = () => {
+  if (BOT_TOKEN === "YOUR_BOT_TOKEN_HERE") {
+    return "https://t.me/BotFather"; // Link to create a bot if no token is provided
+  }
   // Extract the numeric ID from the token
   const botId = BOT_TOKEN.split(':')[0];
   return `https://t.me/bot${botId}`;
 };
+
