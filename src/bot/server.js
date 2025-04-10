@@ -8,7 +8,6 @@ import ytdl from 'ytdl-core';
 import { fileTypeFromBuffer } from 'file-type';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import TikTokScraper from 'tiktok-scraper';
 
 // Get directory name for ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -25,6 +24,47 @@ const bot = new Telegraf(BOT_TOKEN);
 
 // Log when the bot starts
 console.log('Starting Telegram bot server...');
+
+// Utility function to extract TikTok video ID from URL
+function extractTikTokId(url) {
+  try {
+    // Handle various TikTok URL formats
+    let videoId = null;
+    
+    // For URLs like: https://vt.tiktok.com/ABCDEF/
+    if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com')) {
+      // We will need to follow the redirect chain to get the actual URL
+      return null; // Will handle with redirect following
+    }
+    
+    // For URLs like: https://www.tiktok.com/@username/video/1234567890123456789
+    const videoMatch = url.match(/\/video\/(\d+)/);
+    if (videoMatch && videoMatch[1]) {
+      videoId = videoMatch[1];
+    }
+    
+    return videoId;
+  } catch (error) {
+    console.error('Error extracting TikTok ID:', error);
+    return null;
+  }
+}
+
+// Utility function to follow redirects and get final URL
+async function getRedirectUrl(url) {
+  try {
+    const response = await axios.get(url, {
+      maxRedirects: 0,
+      validateStatus: status => status >= 200 && status < 400
+    });
+    return url; // No redirect
+  } catch (error) {
+    if (error.response && error.response.headers && error.response.headers.location) {
+      return error.response.headers.location;
+    }
+    throw error;
+  }
+}
 
 // Utility function to download file from URL
 async function downloadFile(url, platform) {
@@ -74,47 +114,23 @@ async function downloadFile(url, platform) {
       console.log(`Processing TikTok URL: ${url}`);
       
       try {
-        // Use TikTokScraper to get the video data
-        const videoMeta = await TikTokScraper.getVideoMeta(url);
-        
-        if (!videoMeta || !videoMeta.collector || videoMeta.collector.length === 0) {
-          throw new Error('Could not extract video data from TikTok URL');
-        }
-        
-        // Get the video URL from the response
-        const videoUrl = videoMeta.collector[0].videoUrl;
-        
-        if (!videoUrl) {
-          throw new Error('No video URL found in TikTok response');
-        }
-        
-        console.log(`Extracted TikTok video URL: ${videoUrl}`);
-        
-        // Download the video using axios
-        const response = await axios({
-          method: 'GET',
-          url: videoUrl,
-          responseType: 'arraybuffer'
-        });
-        
-        fileBuffer = Buffer.from(response.data, 'binary');
-        filename = `tiktok_${Date.now()}.mp4`;
-        
-        // Save file to disk
-        const filePath = path.join(downloadsDir, filename);
-        await fs.promises.writeFile(filePath, fileBuffer);
-        
-        return {
-          path: filePath,
-          filename: filename,
-          info: {
-            platform: 'tiktok',
-            author: videoMeta.collector[0].authorMeta?.name || 'Unknown',
-            description: videoMeta.collector[0].text || 'No description',
-            size: `${(fileBuffer.length / (1024 * 1024)).toFixed(2)} MB`,
-            source: url
+        // For short URLs (vt.tiktok.com) we need to follow redirects
+        let finalUrl = url;
+        if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com')) {
+          try {
+            // Follow the redirect to get the actual TikTok URL
+            finalUrl = await getRedirectUrl(url);
+            console.log(`TikTok URL redirected to: ${finalUrl}`);
+          } catch (redirectError) {
+            console.error('Error following TikTok redirect:', redirectError.message);
           }
-        };
+        }
+        
+        // Without the tiktok-scraper, we'll need to inform the user about the limitation
+        const errorMsg = "TikTok API access requires authentication. Please use a direct video URL from TikTok. " +
+                         "Due to TikTok's restrictions, we cannot automatically extract videos from share links at this time.";
+        
+        throw new Error(errorMsg);
       } catch (error) {
         console.error(`Error processing TikTok URL: ${error.message}`);
         
@@ -361,33 +377,41 @@ bot.command('tiktok', async (ctx) => {
       '📥 Downloading video from TikTok. Please wait...'
     );
     
-    // Download the file (now supports both direct and share URLs)
-    const downloadResult = await downloadFile(url, 'tiktok');
-    
-    // Send the downloaded file
-    await ctx.telegram.sendVideo(
-      ctx.chat.id,
-      { source: downloadResult.path, filename: downloadResult.filename },
-      {
-        caption: `🎵 TikTok video:
-${downloadResult.info.author ? `👤 Author: ${downloadResult.info.author}\n` : ''}
-${downloadResult.info.description ? `📝 Description: ${downloadResult.info.description}\n` : ''}
+    // If it's a direct video URL (ends with mp4 or from tiktokcdn domain)
+    if (url.endsWith('.mp4') || url.includes('tiktokcdn')) {
+      // Download the file
+      const downloadResult = await downloadFile(url, 'tiktok');
+      
+      // Send the downloaded file
+      await ctx.telegram.sendVideo(
+        ctx.chat.id,
+        { source: downloadResult.path, filename: downloadResult.filename },
+        {
+          caption: `🎵 TikTok video:
 📦 Size: ${downloadResult.info.size}
 🔗 Source: ${url}`
-      }
-    );
-    
-    // Update the message
-    await ctx.telegram.editMessageText(
-      ctx.chat.id,
-      progressMessage.message_id,
-      undefined,
-      `✅ TikTok download complete!`
-    );
-    
-    // Clean up the file
-    fs.unlinkSync(downloadResult.path);
-    
+        }
+      );
+      
+      // Update the message
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        progressMessage.message_id,
+        undefined,
+        `✅ TikTok download complete!`
+      );
+      
+      // Clean up the file
+      fs.unlinkSync(downloadResult.path);
+    } else {
+      // For share links, provide guidance on direct URLs
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        progressMessage.message_id,
+        undefined,
+        `⚠️ TikTok share URLs can't be directly downloaded.\n\nTo download TikTok videos:\n1. Open the video in the TikTok app\n2. Copy the link to the actual video file (not the share URL)\n3. Use that direct link with the /tiktok command`
+      );
+    }
   } catch (error) {
     console.error(`TikTok download error: ${error.message}`);
     await ctx.telegram.editMessageText(
