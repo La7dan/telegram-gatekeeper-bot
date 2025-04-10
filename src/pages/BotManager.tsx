@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import { useAuth } from '@/context/AuthContext';
@@ -58,7 +57,14 @@ const BotManager: React.FC = () => {
     const storedBots = localStorage.getItem('telegram_bots');
     if (storedBots) {
       try {
-        setBots(JSON.parse(storedBots));
+        const parsedBots = JSON.parse(storedBots);
+        // Ensure all bots have a valid status
+        const validatedBots = parsedBots.map((bot: any) => ({
+          ...bot,
+          // Ensure status is either 'active' or 'inactive'
+          status: bot.status === 'active' ? 'active' : 'inactive'
+        }));
+        setBots(validatedBots);
       } catch (error) {
         console.error("Error loading bots:", error);
         setBots([]);
