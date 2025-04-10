@@ -1,7 +1,7 @@
 
-const { Telegraf } = require('telegraf');
-const dotenv = require('dotenv');
-const { BOT_TOKEN } = require('../utils/telegramConfig');
+import { Telegraf } from 'telegraf';
+import dotenv from 'dotenv';
+import { BOT_TOKEN } from '../utils/telegramConfig.js';
 
 // Initialize the bot with your token
 const bot = new Telegraf(BOT_TOKEN);

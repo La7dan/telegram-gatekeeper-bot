@@ -12,11 +12,11 @@ This is a simple Telegram bot server implementation that connects to the Telegra
 npm install telegraf dotenv
 ```
 
-3. The bot uses the BOT_TOKEN from your telegramConfig.ts file
+3. The bot uses the BOT_TOKEN from your telegramConfig.js file
 
 4. Run the bot:
 ```bash
-node server.js
+node src/bot/server.js
 ```
 
 ## Available Commands
