@@ -7,6 +7,7 @@ import NotFound from './pages/NotFound';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './context/AuthContext';
 import BotSetup from './pages/BotSetup';
+import BotManager from './pages/BotManager';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/setup" element={<BotSetup />} />
+          <Route path="/bot-manager" element={<BotManager />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster position="top-right" />

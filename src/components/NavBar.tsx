@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Shield, Settings, Menu, Database } from 'lucide-react';
+import { LogOut, User, Shield, Settings, Menu, Database, Bot } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const NavBar: React.FC = () => {
@@ -66,15 +66,21 @@ const NavBar: React.FC = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="flex items-center cursor-pointer">
+                  <DropdownMenuItem onClick={() => navigate('/')} className="flex items-center cursor-pointer">
                     <User size={16} className="mr-2" />
-                    <span>Profile</span>
+                    <span>Dashboard</span>
                   </DropdownMenuItem>
                   {user.role === 'admin' && (
-                    <DropdownMenuItem className="flex items-center cursor-pointer">
-                      <Shield size={16} className="mr-2" />
-                      <span>Admin Settings</span>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem onClick={() => navigate('/bot-manager')} className="flex items-center cursor-pointer">
+                        <Bot size={16} className="mr-2" />
+                        <span>Bot Manager</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="flex items-center cursor-pointer">
+                        <Shield size={16} className="mr-2" />
+                        <span>Admin Settings</span>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuItem className="flex items-center cursor-pointer">
                     <Settings size={16} className="mr-2" />
