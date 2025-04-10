@@ -39,7 +39,7 @@ const Login: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <span className={`inline-block w-3 h-3 rounded-full ${dbStatus.connected ? 'bg-green-400' : 'bg-red-400'}`}></span>
+            <span className={`inline-block w-3 h-3 rounded-full ${dbStatus.connected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></span>
             <span className="text-xs">{dbStatus.connected ? 'DB Connected' : 'DB Disconnected'}</span>
           </div>
         </div>
@@ -48,6 +48,9 @@ const Login: React.FC = () => {
       <div className="flex-grow flex items-center justify-center p-4 bg-gray-50">
         <div className="w-full max-w-md">
           <AuthForm type="login" onSubmit={handleSubmit} />
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            Default admin login: La7dan@gmail.com / Ala@450
+          </p>
         </div>
       </div>
       
