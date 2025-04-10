@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Bot, Webhook, Command, BarChart3, Edit2 } from 'lucide-react';
+import { ArrowLeft, Bot, Webhook, Command, BarChart3, Edit2, Download } from 'lucide-react';
 import WebhookConfig from './WebhookConfig';
 import CommandManager from './CommandManager';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import DownloadManager from './DownloadManager';
 
 interface BotConfig {
   id: string;
@@ -96,7 +97,7 @@ const BotDetail: React.FC<BotDetailProps> = ({ bot, onBack, onUpdate }) => {
       </Card>
       
       <Tabs defaultValue="webhook">
-        <TabsList className="grid grid-cols-3">
+        <TabsList className="grid grid-cols-4">
           <TabsTrigger value="webhook" className="flex items-center gap-2">
             <Webhook size={16} />
             <span className="hidden md:inline">Webhook</span>
@@ -106,6 +107,11 @@ const BotDetail: React.FC<BotDetailProps> = ({ bot, onBack, onUpdate }) => {
             <Command size={16} />
             <span className="hidden md:inline">Commands</span>
             <span className="md:hidden">Cmds</span>
+          </TabsTrigger>
+          <TabsTrigger value="downloads" className="flex items-center gap-2">
+            <Download size={16} />
+            <span className="hidden md:inline">Downloads</span>
+            <span className="md:hidden">DL</span>
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 size={16} />
@@ -128,6 +134,10 @@ const BotDetail: React.FC<BotDetailProps> = ({ bot, onBack, onUpdate }) => {
             initialCommands={activeBot.commands || []}
             onSave={handleCommandsSave}
           />
+        </TabsContent>
+        
+        <TabsContent value="downloads" className="mt-6">
+          <DownloadManager botId={activeBot.id} />
         </TabsContent>
         
         <TabsContent value="analytics" className="mt-6">
